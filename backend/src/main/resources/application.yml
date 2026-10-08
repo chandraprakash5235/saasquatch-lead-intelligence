@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: saasquatch-lead-intelligence
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/caprae_leads}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:qwen2.5:3b}
+  timeout-seconds: ${OLLAMA_TIMEOUT_SECONDS:120}
+
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+  timeout-seconds: ${OPENAI_TIMEOUT_SECONDS:30}

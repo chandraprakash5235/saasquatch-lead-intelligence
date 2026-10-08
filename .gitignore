@@ -1,0 +1,25 @@
+# IDE & OS Files
+.idea/
+.vscode/
+*.swp
+*.iml
+.DS_Store
+Thumbs.db
+
+# Java & Maven
+backend/target/
+backend/*.log
+backend/.mvn/
+
+# Node & Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/*.log
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Environment Variables
+.env
