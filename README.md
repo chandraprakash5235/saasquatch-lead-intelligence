@@ -6,7 +6,7 @@
 
 ## 🎯 Product Overview
 
-**SaaSquatch Lead Intelligence** is an enterprise sales enablement web application designed to optimize lead-generation workflows by helping B2B sales teams instantly identify, evaluate, prioritize, and reach out to their most valuable leads.
+**SaaSquatch Lead Intelligence** is an enterprise sales enablement web application designed to optimize lead-generation workflows by helping B2B sales teams instantly identify, evaluate, prioritize, and act on high-potential opportunities.
 
 The application answers two fundamental questions for sales representatives:
 1. **Prioritization**: *"Which lead should I contact first, and why?"* (Powered by an explainable, deterministic scoring engine)
@@ -26,7 +26,7 @@ Modern lead generation workflows produce high volumes of raw prospect data daily
 
 ## 🧪 Product Hypothesis
 
-By decoupling **Lead Prioritization** (100% deterministic, explainable rule engine) from **Outreach Generation** (grounded LLM assistant), sales teams gain full transparency and trust in lead ranking while slashing manual outreach prep time.
+By decoupling **Lead Prioritization** (100% deterministic, explainable rule engine) from **Outreach Generation** (grounded LLM assistant), sales teams gain full transparency and trust in lead ranking while still benefiting from AI-assisted outreach preparation.
 
 ---
 
@@ -36,10 +36,10 @@ By decoupling **Lead Prioritization** (100% deterministic, explainable rule engi
 - **Deterministic Lead Scoring Engine (0–100)**: Evaluates ICP fit, revenue tier, employee size, growth signals, decision-maker quality, and metadata completeness.
 - **Priority Tier Classification**: Categorizes leads into 🔴 **HIGH** (≥ 80), 🟡 **MEDIUM** (60–79), and ⚪ **LOW** (< 60).
 - **Explainable Score Breakdown UI**: "Why this lead?" drawer displaying itemized point breakdowns and human-readable score justifications.
-- **Grounded AI Outreach Brief**: Generates personalized executive summaries, key talking points, personalization hooks, email openings, and data gap warnings using strictly verified lead facts.
+- **Grounded AI Outreach Brief**: Generates personalized executive summaries, key talking points, personalization hooks, email openings, and data gap warnings using strictly recorded lead facts/data.
 - **Safety & Anti-Hallucination Audit**: Strict rules preventing the AI from inventing executive titles, funding, products, or unverified claims.
 - **One-Click Clipboard Copying**: Easily copy suggested email openings to clipboard.
-- **Graceful Error Handling**: Comprehensive fallback and status codes (e.g. 503 Service Unavailable when `OPENAI_API_KEY` is omitted).
+- **Graceful Error Handling**: Clear handling for Ollama connectivity issues, request timeouts, and deterministic fallback when the local model cannot provide a grounded response.
 
 ---
 
@@ -48,7 +48,7 @@ By decoupling **Lead Prioritization** (100% deterministic, explainable rule engi
 ### System Flow
 ```text
 ┌────────────────────────────────────────────────────────┐
-│                      React + TS                        │
+│                      React + TypeScript                 │
 │                     Ant Design UI                      │
 └───────────────────────────┬────────────────────────────┘
                             │ REST (JSON)
@@ -62,9 +62,18 @@ By decoupling **Lead Prioritization** (100% deterministic, explainable rule engi
 └───────────────┬────────────────────────┬───────────────┘
                 │                        │
                 ↓                        ↓
-┌────────────────────────┐    ┌──────────────────────────┐
-│ PostgreSQL / H2 DB     │    │ OpenAI Chat API          │
-└────────────────────────┘    └──────────────────────────┘
+┌────────────────────────┐   ┌──────────────────────────┐
+│ PostgreSQL             │   │ Ollama qwen2.5:3b        │
+└────────────────────────┘   └─────────────┬────────────┘
+                                             ↓
+                                 ┌──────────────────────┐
+                                 │ Grounding Validator  │
+                                 └──────────┬───────────┘
+                                            ↓
+                                 ┌──────────────────────┐
+                                 │ Deterministic        │
+                                 │ Fallback             │
+                                 └──────────────────────┘
 ```
 
 ---
@@ -77,7 +86,7 @@ By decoupling **Lead Prioritization** (100% deterministic, explainable rule engi
 - **PostgreSQL 16** (Production-ready persistence via Docker Compose)
 - **H2 Database** (Zero-config fallback for automated testing)
 - **Apache Commons CSV** (Robust CSV ingestion)
-- **Java 21 HttpClient & Jackson** (Native REST client for OpenAI API)
+- **Java 21 HttpClient & Jackson** (Native REST client for Ollama API)
 
 ### Frontend
 - **React 18 + TypeScript 5 + Vite 5**
@@ -124,10 +133,15 @@ docker exec -it caprae-ollama ollama pull qwen2.5:3b
 
 ### Grounding & Safety Audit Rules
 1. **Score Integrity**: AI does **never** alter or calculate lead scores or priorities.
-2. **Strict Attribute Reliances**: Prompt builder supplies only verified facts from the DB record.
+2. **Strict Attribute Reliances**: Prompt builder supplies only recorded facts from the DB record.
 3. **No Fact Fabrication**: Prohibits inventing executive titles, LinkedIn profiles, funding amounts, client lists, or product claims.
 4. **Data Gap Handling**: If decision maker title or LinkedIn is missing, AI notes the gap rather than guessing.
 5. **Channel Safety**: Recommends `LinkedIn InMail` only when a verified LinkedIn URL exists; otherwise defaults to `Email` or `Unknown (Requires Verification)`.
+
+### Connectivity & Deterministic Fallback
+- **LLM Connectivity**: The application checks local Ollama availability before generating the outreach brief and surfaces timeout/connectivity issues clearly.
+- **Request Timeout Handling**: If Ollama is slow or unreachable, the API returns a controlled failure state instead of silently fabricating output.
+- **Deterministic Fallback**: When the model cannot respond, the system falls back to a deterministic, rule-based outreach structure using recorded lead attributes and safety-checked phrasing.
 
 ---
 
@@ -228,7 +242,7 @@ mvn clean test
 Test coverage includes:
 - `LeadScoringServiceTest`: Deterministic scoring rules, priority bounds, growth signals, and data completeness.
 - `AIOutreachPromptBuilderTest`: Prompt grounding rules, prohibited hallucination checks, and null field safety.
-- `AIOutreachServiceTest`: Unconfigured API key exception handling.
+- `AIOutreachServiceTest`: Ollama connectivity and timeout/fallback handling.
 - `LeadControllerTest`: REST API contracts.
 
 ---
@@ -239,7 +253,7 @@ Test coverage includes:
 2. **Import Leads**: Click **Import Leads** -> select `sample-data/leads.csv` -> click **Import File**.
 3. **Prioritize**: Notice table automatically sorts by `Lead Score DESC` with 🔴 **HIGH** priority leads highlighted at the top.
 4. **Filter**: Select Priority = `HIGH` to filter top-tier prospects.
-5. **Inspect**: Click **"Why this lead?"** on Nova Technology to review the itemized score breakdown (87/100).
+5. **Inspect**: Click **"Why this lead?"** on Nova Technology to review the itemized score breakdown (97/100).
 6. **Act**: Click **"Generate AI Outreach Brief"** to receive grounded talking points and copy the opening email line.
 
 ---
